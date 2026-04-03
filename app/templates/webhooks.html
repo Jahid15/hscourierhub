@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 mt-6">
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-between">
+            <span class="flex items-center"><span class="text-3xl mr-2">🔔</span> Webhook Logs</span>
+            <button onclick="loadWebhooks()" class="text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded font-medium transition">
+                Refresh Logs
+            </button>
+        </h1>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm whitespace-nowrap">
+                <thead class="uppercase tracking-wider border-b-2 border-gray-200 bg-gray-50 text-gray-600 font-semibold">
+                    <tr>
+                        <th class="px-4 py-3">Time</th>
+                        <th class="px-4 py-3">Courier</th>
+                        <th class="px-4 py-3">Consignment ID</th>
+                        <th class="px-4 py-3">Payload Preview</th>
+                    </tr>
+                </thead>
+                <tbody id="webhookTableBody" class="divide-y divide-gray-100">
+                    <!-- Logs inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', loadWebhooks);
+
+async function loadWebhooks() {
+    const tbody = document.getElementById('webhookTableBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Loading logs...</td></tr>';
+    
+    try {
+        const resp = await fetch('/api/v1/webhooks/logs');
+        const logs = await resp.json();
+        
+        tbody.innerHTML = '';
+        if(logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">No webhook logs found.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const dt = new Date(log.received_at + (!log.received_at.endsWith('Z') ? 'Z' : '')).toLocaleString();
+            let bgClass = '';
+            if(log.courier === 'steadfast') bgClass = 'bg-green-100 text-green-800';
+            else if(log.courier === 'pathao') bgClass = 'bg-red-100 text-red-800';
+            else if(log.courier === 'carrybee') bgClass = 'bg-purple-100 text-purple-800';
+            else bgClass = 'bg-gray-100 text-gray-800';
+
+            const payloadPreview = JSON.stringify(log.payload).substring(0, 80) + '...';
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-500">${dt}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded text-xs font-bold uppercase ${bgClass}">${log.courier}</span>
+                    </td>
+                    <td class="px-4 py-3 font-mono">${log.consignment_id || 'N/A'}</td>
+                    <td class="px-4 py-3 font-mono text-xs text-gray-500 truncate max-w-md" title='${JSON.stringify(log.payload)}'>
+                        ${payloadPreview}
+                    </td>
+                </tr>
+            `;
+        });
+    } catch(err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-500">Error: ${err.message}</td></tr>`;
+    }
+}
+</script>
+{% endblock %}

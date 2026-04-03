@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-4 mt-6">
+    <div class="bg-white p-8 rounded-xl shadow-md border border-gray-100">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center">
+            <span class="mr-3">📚</span> API Documentation
+        </h1>
+        <p class="text-gray-600 mb-8 border-b pb-4">Standardized REST API for Courier Fraud Checking & Parcel Entry. Easy integration with WordPress, Laravel, Node.js, etc.</p>
+
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Sidebar -->
+            <div class="w-full md:w-1/4">
+                <div class="sticky top-6">
+                    <h3 class="font-bold text-gray-800 uppercase text-xs tracking-wider mb-3">Contents</h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="#auth" class="hover:text-blue-600">Authentication</a></li>
+                        <li><a href="#fraud-check" class="hover:text-blue-600">Fraud Check API</a></li>
+                        <li><a href="#parcel-create" class="hover:text-blue-600">Parcel Create API</a></li>
+                        <li><a href="#merchant-id" class="hover:text-blue-600">Merchant ID API</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="w-full md:w-3/4 space-y-12">
+                
+                <!-- Auth Section -->
+                <section id="auth">
+                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Authentication</h2>
+                    <p class="text-sm text-gray-600 mb-4">All API requests require the <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header.</p>
+                    <div class="bg-gray-800 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                        <span class="text-green-400">X-API-Key:</span> your-secret-api-key
+                    </div>
+                </section>
+
+                <!-- Fraud Check -->
+                <section id="fraud-check">
+                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Fraud Check API</h2>
+                    <div class="mb-4">
+                        <span class="bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded text-xs">GET</span>
+                        <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-800">/api/v1/fraud-check/{phone}</code>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">Checks delivery history across Steadfast, Pathao, CarryBee, and RedX.</p>
+                    
+                    <h4 class="font-semibold text-sm mt-4 mb-2">Response Example:</h4>
+                    <div class="bg-gray-800 text-green-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+<pre>{
+  "phone": "01676225090",
+  "summary": {
+    "total_parcels": 150,
+    "total_delivered": 80,
+    "total_cancelled": 70,
+    "steadfast_fraud_reports": 2,
+    "overall_success_rate": 53.33
+  },
+  "couriers": [
+    {
+      "name": "Steadfast",
+      "total": 15,
+      "delivered": 7,
+      "cancelled": 8,
+      "comment": "fraud: 2",
+      "status": "ok"
+    }
+    // ...other couriers
+  ]
+}</pre>
+                    </div>
+                </section>
+
+                <!-- Parcel Create -->
+                <section id="parcel-create">
+                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Parcel Create API</h2>
+                    <div class="mb-4">
+                        <span class="bg-green-100 text-green-800 font-bold px-2 py-1 rounded text-xs">POST</span>
+                        <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-800">/api/v1/parcel/create</code>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">Creates a parcel in the chosen courier system.</p>
+                    
+                    <h4 class="font-semibold text-sm mt-4 mb-2">Request Body Example:</h4>
+                    <div class="bg-gray-800 text-green-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+<pre>{
+  "courier": "carrybee",
+  "business": "hellosquare",
+  "recipient_name": "Jahid",
+  "recipient_phone": "01676225090",
+  "recipient_address": "Uttara, Dhaka-1230",
+  "cod_amount": 1050,
+  "city_id": 14,
+  "zone_id": 151
+}</pre>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

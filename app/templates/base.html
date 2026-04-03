@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Courier Hub{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <nav class="bg-indigo-600 text-white shadow-lg relative z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="font-bold text-xl flex items-center">
+                    <span class="mr-2">🚀</span> HelloSquare
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden lg:flex items-center space-x-4 flex-1 justify-center">
+                    <a href="/fraud-check" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Fraud Check</a>
+                    <a href="/parcel-entry" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Create Parcel</a>
+                    <a href="/parcel-list" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Tracking</a>
+                    <a href="/merchant-ids" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Merchant IDs</a>
+                    <a href="/accounts" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Accounts</a>
+                    <a href="/webhooks" class="hover:bg-indigo-500 px-3 py-2 rounded-md transition font-medium">Webhooks</a>
+                </div>
+
+                <!-- Desktop Right Side Action -->
+                <div class="hidden lg:flex items-center space-x-4">
+                    <a href="/api-docs" class="text-indigo-200 hover:text-white px-3 py-2 text-sm font-medium">API Docs</a>
+                    <a href="/logout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md transition font-bold text-sm">Logout</a>
+                </div>
+
+                <!-- Hamburger Mobile Toggle -->
+                <div class="lg:hidden flex items-center">
+                    <button id="mobileMenuBtn" class="text-white hover:text-indigo-200 focus:outline-none p-2">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="hidden lg:hidden bg-indigo-700 w-full absolute shadow-xl border-t border-indigo-500">
+            <div class="px-4 py-3 space-y-2 flex flex-col">
+                <a href="/fraud-check" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">🛡️ Fraud Check</a>
+                <a href="/parcel-entry" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">📦 Create Parcel</a>
+                <a href="/parcel-list" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">📍 Tracking</a>
+                <a href="/merchant-ids" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">⚙️ Merchant IDs</a>
+                <a href="/accounts" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">🔑 Accounts</a>
+                <a href="/webhooks" class="block hover:bg-indigo-600 px-3 py-3 rounded-md font-medium text-lg border-b border-indigo-600/50">🔗 Webhooks</a>
+                
+                <div class="pt-4 mt-2 flex flex-col space-y-3">
+                    <a href="/api-docs" class="text-center bg-indigo-800 hover:bg-indigo-900 px-4 py-3 rounded-md text-sm font-medium">📚 Documentation</a>
+                    <a href="/logout" class="text-center bg-red-500 hover:bg-red-600 px-4 py-3 rounded-md font-bold text-sm">🚪 Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="min-h-screen">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-12 py-6 text-center text-gray-500 text-sm">
+        <p>&copy; 2026 HelloSquare Courier Hub. Unified API Engine.</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+    
+    <script>
+        // Universal Mobile Menu Toggle
+        const menuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        if(menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
+</body>
+</html>

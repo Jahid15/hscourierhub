@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-8 px-4">
+    <!-- TABLE 1: GLOBAL NAMESPACES -->
+    <div class="mb-12">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                🏢 Business Namespaces (Sequence Ledger)
+            </h2>
+            <button onclick="openBusinessModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2 shadow-sm">
+                <span>+ Add Business</span>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                        <th class="py-4 px-6 font-semibold">Business Namespace</th>
+                        <th class="py-4 px-6 font-semibold">Prefix</th>
+                        <th class="py-4 px-6 font-semibold text-center">Global Iterator</th>
+                        <th class="py-4 px-6 font-semibold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="businessTableBody" class="divide-y divide-gray-100 text-sm bg-white">
+                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Loading configurations...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TABLE 2: COURIER INTEGRATIONS -->
+    <div>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                🔗 Courier Network Integrations
+            </h2>
+            <button onclick="openCourierModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2 shadow-sm">
+                <span>+ Add Integration</span>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                        <th class="py-4 px-6 font-semibold">Mapped Business</th>
+                        <th class="py-4 px-6 font-semibold">Courier Network</th>
+                        <th class="py-4 px-6 font-semibold">API Credentials</th>
+                        <th class="py-4 px-6 font-semibold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="courierTableBody" class="divide-y divide-gray-100 text-sm bg-white">
+                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Loading integrations...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Business CRUD Modal -->
+<div id="businessModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-800" id="businessModalTitle">Create Business</h3>
+            <button onclick="closeBusinessModal()" class="text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-md p-1 border border-gray-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="editBusinessId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Business Namespace</label>
+                    <input type="text" id="businessName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. HelloSquare">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prefix</label>
+                        <input type="text" id="prefix" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. HS">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Global Iterator</label>
+                        <input type="number" id="currentNumber" value="0" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeBusinessModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md text-sm font-medium transition">Cancel</button>
+                <button onclick="saveBusiness()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition">Save Business</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Courier CRUD Modal -->
+<div id="courierModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden animate-fade-in-up">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-800" id="courierModalTitle">Attach Courier Integration</h3>
+            <button onclick="closeCourierModal()" class="text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-md p-1 border border-gray-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <input type="hidden" id="editCourierId">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Business</label>
+                    <select id="courier_businessName" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Courier Network</label>
+                    <select id="courier_network" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white" onchange="renderCredentialInputs()">
+                        <option value="steadfast">Steadfast</option>
+                        <option value="pathao">Pathao</option>
+                        <option value="carrybee">CarryBee</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DYNAMIC API CREDENTIALS AREA -->
+            <div id="credentialsArea" class="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-md border-dashed">
+                <!-- JS Populates Fields Here Based on Courier -->
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="closeCourierModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md text-sm font-medium transition">Cancel</button>
+                <button onclick="saveCourierProfile()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium transition">Save Integration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/merchant_ids.js?v=1"></script>
+{% endblock %}

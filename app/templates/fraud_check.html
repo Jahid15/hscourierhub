@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-4 mt-6">
+    <div class="bg-white p-6 rounded-xl shadow-md">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+            <span class="text-3xl mr-2">🔍</span> Customer Fraud Check
+        </h1>
+        
+        <form id="checkForm" class="flex flex-col gap-4 mb-4">
+            <div class="flex w-full border border-gray-300 rounded-xl overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition">
+                
+                <!-- Flexible Input Field -->
+                <input type="tel" id="phone" name="phone" placeholder="Enter phone #" required
+                    class="flex-1 px-4 py-3 sm:py-4 bg-white focus:outline-none text-base sm:text-lg min-w-0 placeholder-gray-400">
+                
+                <!-- Fixed Action Group -->
+                <div class="flex flex-none border-l border-gray-200 items-stretch bg-gray-50">
+                    <!-- Paste Button (Icon only on Mobile) -->
+                    <button type="button" id="pasteBtn" class="px-4 sm:px-5 hover:bg-gray-200 text-gray-700 transition border-r border-gray-200 flex items-center justify-center gap-2 font-medium" title="Paste from clipboard">
+                        <span class="text-xl">📋</span>
+                        <span class="hidden sm:inline">Paste</span>
+                    </button>
+                    <!-- Search Submit -->
+                    <button type="submit" id="searchBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-8 font-bold text-base sm:text-lg transition flex items-center justify-center relative">
+                        <span class="mr-1">Search</span>
+                        <div id="loader" class="hidden spinner absolute right-2 border-white border-t-transparent w-4 h-4 rounded-full border-2 animate-spin"></div>
+                    </button>
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <div id="resultsArea" class="hidden">
+            <!-- Summary -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6">
+                <h2 class="text-xs font-bold uppercase text-gray-500 mb-3 tracking-wider flex justify-between items-center">
+                    <span>Overall Summary</span>
+                    <span id="customerNameBadge" class="hidden bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold shadow-sm"></span>
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center">
+                        <span class="text-sm text-gray-500 font-medium text-center">Total Parcels</span>
+                        <span id="sumTotal" class="text-2xl font-bold text-gray-800">0</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center">
+                        <span class="text-sm text-green-600 font-medium text-center">Delivered</span>
+                        <span id="sumDelivered" class="text-2xl font-bold text-green-600">0</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center">
+                        <span class="text-sm text-red-500 font-medium text-center">Cancelled</span>
+                        <span id="sumCancelled" class="text-2xl font-bold text-red-500">0</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center">
+                        <span class="text-sm text-blue-600 font-medium text-center">Success Rate</span>
+                        <span id="sumRate" class="text-2xl font-bold text-blue-600">0%</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col items-center">
+                        <span class="text-sm text-red-700 font-medium text-center">Steadfast Fraud</span>
+                        <span id="sumFraudCard" class="text-2xl font-bold text-red-700">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Table -->
+            <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                <table class="w-full text-left bg-white">
+                    <thead class="bg-gray-50 text-gray-600 text-sm font-semibold uppercase">
+                        <tr>
+                            <th class="px-4 py-3">Courier</th>
+                            <th class="px-4 py-3 text-center">Total</th>
+                            <th class="px-4 py-3 text-center text-green-600">Delivered</th>
+                            <th class="px-4 py-3 text-center text-red-500">Cancelled</th>
+                            <th class="px-4 py-3">Comment / Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="courierTableBody" class="divide-y divide-gray-200">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 text-xs text-gray-400 text-right">
+                Results fetched at: <span id="timestamp"></span> <span id="cachedBadge" class="hidden ml-2 bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Cached</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.spinner {
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid #fff;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+input:checked ~ .dot {
+  transform: translateX(100%);
+}
+input:checked ~ .toggle-bg {
+  background-color: #3b82f6; 
+}
+</style>
+<script src="/static/js/fraud_check.js?v=3"></script>
+{% endblock %}
