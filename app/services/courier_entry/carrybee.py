@@ -48,7 +48,24 @@ class CarrybeeEntry:
             
             if resp.status_code == 200:
                 if not resp_data.get("error") and resp_data.get("data"):
-                    return resp_data["data"].get("city_id"), resp_data["data"].get("zone_id"), None
+                    city_id = resp_data["data"].get("city_id")
+                    zone_id = resp_data["data"].get("zone_id")
+                    
+                    # Carrybee Global Parser sometimes evaluates text to legacy IDs (e.g. 1079/1082 for Uttara)
+                    # which don't exist in live production Hub maps, triggering 'Hub coverage not found'.
+                    if city_id and zone_id:
+                        active_zones = await self.get_zones(city_id)
+                        is_valid = any(z['id'] == zone_id for z in active_zones)
+                        
+                        if not is_valid and active_zones:
+                            query_words = [w for w in query.replace(',', ' ').lower().split() if len(w) > 3]
+                            for w in query_words:
+                                match = next((z for z in active_zones if w in z['name'].lower()), None)
+                                if match:
+                                    zone_id = match['id']
+                                    break
+                                    
+                    return city_id, zone_id, None
                 
                 # Handling 422 or logic errors elegantly
                 cause = resp_data.get("message")
