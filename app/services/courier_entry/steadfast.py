@@ -25,9 +25,20 @@ class SteadfastEntry:
             "cod_amount": int(data["cod_amount"])
         }
         
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp_data = resp.json() if resp.status_code == 200 else {"error": f"HTTP {resp.status_code}", "body": resp.text}
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                resp = await client.post(url, json=payload, headers=headers)
+                resp.raise_for_status()
+                resp_data = resp.json()
+            except httpx.RequestError as e:
+                return {"success": False, "courier": "steadfast", "message": f"Network Error: {str(e)}", "raw_response": {}}
+            except httpx.HTTPStatusError as e:
+                try:
+                    resp_data = e.response.json()
+                except:
+                    resp_data = {"error": f"HTTP {e.response.status_code}", "body": e.response.text}
+            except Exception as e:
+                return {"success": False, "courier": "steadfast", "message": f"Unexpected Error: {str(e)}", "raw_response": {}}
             
             # Note: The api response format might vary.
             if resp.status_code == 200 and resp_data.get('status') == 200:

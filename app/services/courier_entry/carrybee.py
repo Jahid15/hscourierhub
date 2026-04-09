@@ -93,12 +93,20 @@ class CarrybeeEntry:
                 "raw_response": {"error": "Parser failed"}
              }
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, json=payload, headers=self._get_headers())
+        async with httpx.AsyncClient(timeout=15.0) as client:
             try:
+                resp = await client.post(url, json=payload, headers=self._get_headers())
+                resp.raise_for_status()
                 resp_data = resp.json()
-            except:
-                resp_data = {"error": f"HTTP {resp.status_code}", "body": resp.text}
+            except httpx.RequestError as e:
+                return {"success": False, "courier": "carrybee", "message": f"Network Error: {str(e)}", "raw_response": {}}
+            except httpx.HTTPStatusError as e:
+                try:
+                    resp_data = e.response.json()
+                except:
+                    resp_data = {"error": f"HTTP {e.response.status_code}", "body": e.response.text}
+            except Exception as e:
+                return {"success": False, "courier": "carrybee", "message": f"Unexpected Error: {str(e)}", "raw_response": {}}
                 
             if resp.status_code in [200, 201, 202] and not resp_data.get('error'):
                 data_block = resp_data.get("data", {})

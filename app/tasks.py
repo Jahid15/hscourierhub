@@ -48,3 +48,25 @@ async def daily_reset_loop():
             
         # Sleep for exactly 60 seconds before waking up to check clock again
         await asyncio.sleep(60)
+
+async def anti_sleep_ping(render_url: str = None):
+    """
+    Background daemon running infinitely.
+    Pings its own Render URL (or a dummy route) every 10 minutes to prevent the server from sleeping.
+    Render free tier sleeps after 15 minutes of inactivity.
+    """
+    import httpx
+    # If not provided, you should set RENDER_EXTERNAL_URL in .env
+    import os
+    url = render_url or os.environ.get("RENDER_EXTERNAL_URL", "http://127.0.0.1:8000/")
+    
+    while True:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                await client.get(url)
+                print(f"[DAEMON] Anti-sleep ping executed on {url}")
+        except Exception as e:
+            print(f"[DAEMON] Anti-sleep ping failed: {e}")
+        
+        # Ping every 10 minutes (600 seconds)
+        await asyncio.sleep(600)
