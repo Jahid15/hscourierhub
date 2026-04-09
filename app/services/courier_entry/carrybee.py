@@ -22,7 +22,7 @@ class CarrybeeEntry:
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Client-Id": self.client_id,
+            "Client-ID": self.client_id,
             "Client-Secret": self.client_secret,
             "Client-Context": self.client_context
         }

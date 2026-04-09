@@ -42,8 +42,12 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_api_url: str = "https://api.openai.com/v1/chat/completions"
 
+    # Render URL
+    render_external_url: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()
