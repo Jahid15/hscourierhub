@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+import logging
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import db
@@ -21,6 +22,28 @@ app.add_middleware(
 
 # Static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Global Fallback Error Handler (prevents fatal crashes on any API request)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.error(f"FATAL Exception intercepted: {exc}")
+    
+    # If the request was asking for JSON or is an API route, return safely formatted JSON
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False, 
+                "message": "Internal processing error. The server recovered safely.", 
+                "raw_error": str(exc),
+                "error_code": "FATAL_EXCEPTION"
+            }
+        )
+    # Otherwise fallback to a standard error format
+    return JSONResponse(
+        status_code=500,
+        content={"error": True, "message": "Critical System Error prevented by Global Catch"}
+    )
 
 # Connect to database on startup
 @app.on_event("startup")
