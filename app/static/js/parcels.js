@@ -26,13 +26,17 @@ function getStatusBadge(status) {
     status = status.toLowerCase();
     if(status === 'delivered') return `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs uppercase tracking-wider">Delivered</span>`;
     if(status.includes('cancel') || status.includes('return')) return `<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs uppercase tracking-wider">Failed</span>`;
-    return `<span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs uppercase tracking-wider">${status}</span>`;
+    } catch (e) {
+        let el = document.getElementById('parcelTableBody');
+        if(el) el.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Failed to load payload.</td></tr>`;
+    }
 }
 
 function renderParcels() {
-    const tbody = document.getElementById('parcelsTableBody');
+    const tbody = document.getElementById('parcelTableBody');
+    if (!tbody) return;
     if (allParcels.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">No active parcels found. Try sending one!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 font-medium">No parcels logged currently.</td></tr>`;
         return;
     }
 

@@ -19,12 +19,14 @@ async function fetchBusinesses() {
             populateBusinessDropdowns(); // updates courier modal options
         }
     } catch (e) {
-        document.getElementById('businessTableBody').innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Failed to load</td></tr>`;
+        const el = document.getElementById('businessTableBody');
+        if(el) el.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Failed to load</td></tr>`;
     }
 }
 
 function renderBusinesses() {
     const tbody = document.getElementById('businessTableBody');
+    if (!tbody) return;
     if (allBusinesses.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">No Business configurations found.</td></tr>`;
         return;
@@ -133,12 +135,14 @@ async function fetchCouriers() {
             renderCourierTable();
         }
     } catch (e) {
-        document.getElementById('courierTableBody').innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Failed to load</td></tr>`;
+        const el = document.getElementById('courierTableBody');
+        if(el) el.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Failed to load</td></tr>`;
     }
 }
 
 function renderCourierTable() {
     const tbody = document.getElementById('courierTableBody');
+    if (!tbody) return;
     if (allCouriers.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">No Carrier integrations attached.</td></tr>`;
         return;
