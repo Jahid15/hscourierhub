@@ -18,7 +18,7 @@ async function fetchParcels() {
             `;
         }
     } catch (error) {
-        let el = document.getElementById('parcelTableBody');
+        let el = document.getElementById('parcelsTableBody');
         if(el) el.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Failed to load payload.</td></tr>`;
         console.error("Error:", error);
     }
@@ -32,7 +32,7 @@ function getStatusBadge(status) {
 }
 
 function renderParcels() {
-    const tbody = document.getElementById('parcelTableBody');
+    const tbody = document.getElementById('parcelsTableBody');
     if (!tbody) return;
     if (allParcels.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 font-medium">No parcels logged currently.</td></tr>`;
