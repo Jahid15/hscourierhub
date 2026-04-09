@@ -8,11 +8,15 @@ from app.config import settings
 
 router = APIRouter(tags=["Webhooks"])
 
-async def send_telegram_notification(parcel: dict, event_status: str, updated_at: str):
+async def send_telegram_notification(parcel: dict, event_status: str, updated_at: str, payload_data: dict):
     if not settings.telegram_bot_token or not settings.telegram_chat_id:
         return
         
     url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
+    
+    # Extract any courier notes or reasons safely (e.g. tracking_message, note, reason)
+    note_str = payload_data.get("reason", payload_data.get("tracking_message", payload_data.get("note", "")))
+    note_block = f"""\n<b>Courier Note</b>: <i>{note_str}</i>\n""" if str(note_str).strip() else ""
     
     # Calculate amounts
     amount = parcel.get("cod_amount", 0)
@@ -40,11 +44,13 @@ async def send_telegram_notification(parcel: dict, event_status: str, updated_at
     else:
         consignment_display = "N/A"
         
-    phone = parcel.get('recipient_phone', 'N/A')
-    phone_display = f'<a href="tel:{phone}">{phone}</a>' if phone != "N/A" else "N/A"
+    phone = str(parcel.get('recipient_phone', 'N/A')).replace(" ", "").strip()
+    # To force telegram to recognize Bangladeshi local numbers, we append +88 if missing and output raw string natively
+    if phone.startswith("01") and len(phone) == 11:
+        phone = f"+88{phone}"
 
     msg = f"""📦 <b>Parcel Update [{event_status}]</b>
-
+{note_block}
 <b>Consignment </b> : {consignment_display}
 <b>Order ID    </b> : {parcel.get('merchant_order_id', 'N/A')}
 <b>Status      </b> : {event_status}
@@ -54,10 +60,10 @@ async def send_telegram_notification(parcel: dict, event_status: str, updated_at
 
 ━━━ Customer Details ━━━
 <b>Name        </b> : {parcel.get('recipient_name', 'N/A')}
-<b>Phone       </b> : {phone_display}
+<b>Phone       </b> : {phone}
 <b>Address     </b> : {parcel.get('recipient_address', 'N/A')}"""
 
-    payload = {
+    telegram_payload = {
         "chat_id": settings.telegram_chat_id,
         "text": msg,
         "parse_mode": "HTML",
@@ -111,7 +117,7 @@ async def process_webhook(courier: str, payload: dict, consignment_id, merchant_
     
     # Broadcast to Telegram
     dt_formatted = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    await send_telegram_notification(parcel, event_status, dt_formatted)
+    await send_telegram_notification(parcel, event_status, dt_formatted, payload)
 
 @router.post("/api/v1/webhooks/steadfast")
 async def steadfast_webhook(request: Request, background_tasks: BackgroundTasks):
@@ -189,11 +195,15 @@ async def pathao_webhook(request: Request, background_tasks: BackgroundTasks):
     
     # Required Challenge Handshake
     if event == "webhook_integration":
-        return JSONResponse(
-            content={"status": "success"},
-            status_code=202,
-            headers={"X-Pathao-Merchant-Webhook-Integration-Secret": "f3992ecc-59da-4cbe-a049-a13da2018d51"}
-        )
+        # Actively extract the secret if Pathao dynamically embeds it in the request headers during testing
+        incoming_secret = request.headers.get("X-Pathao-Merchant-Webhook-Integration-Secret", "f3992ecc-59da-4cbe-a049-a13da2018d51")
+        
+        # Build pure explicit response format ensuring Uvicorn framework doesn't mangle Pathao's brittle verifier
+        response = Response(content='{"status":"success"}', media_type="application/json", status_code=202)
+        response.headers["X-Pathao-Merchant-Webhook-Integration-Secret"] = str(incoming_secret).strip()
+        response.headers["X-PATHAO-Merchant-Webhook-Integration-Secret"] = str(incoming_secret).strip()
+        
+        return response
         
     consignment_id = payload.get("consignment_id")
     merchant_order_id = payload.get("merchant_order_id")
