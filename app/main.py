@@ -63,8 +63,6 @@ class PathaoASGIMiddleware:
 
         await self.app(scope, receive, custom_send)
 
-app = PathaoASGIMiddleware(app)
-
 # Basic HTML response for index
 templates = Jinja2Templates(directory="app/templates")
 
@@ -74,6 +72,13 @@ from fastapi.responses import RedirectResponse
 async def read_root(request: Request):
     return RedirectResponse(url="/fraud-check")
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request, "title": "Login"})
+
 @app.get("/api-docs", response_class=HTMLResponse)
 async def api_docs_page(request: Request):
     return templates.TemplateResponse("api_docs.html", {"request": request, "title": "API Documentation"})
+
+# Apply ASGI Middleware exactly at the end of the script before the worker boots.
+app = PathaoASGIMiddleware(app)
