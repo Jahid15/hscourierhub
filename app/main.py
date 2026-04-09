@@ -41,6 +41,30 @@ app.include_router(parcel_routes.router)
 app.include_router(account_routes.router)
 app.include_router(webhook_routes.router)
 
+class PathaoASGIMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or "api/v1/webhooks/pathao" not in scope.get("path", ""):
+            return await self.app(scope, receive, send)
+
+        async def custom_send(message):
+            if message["type"] == "http.response.start":
+                new_headers = []
+                for k, v in message.get("headers", []):
+                    if k.lower() == b"x-pathao-merchant-webhook-integration-secret":
+                        # Force uppercase to bypass ASGI/Uvicorn lowercasing policies for brittle PHP scripts
+                        new_headers.append((b"X-Pathao-Merchant-Webhook-Integration-Secret", v))
+                    else:
+                        new_headers.append((k, v))
+                message["headers"] = new_headers
+            await send(message)
+
+        await self.app(scope, receive, custom_send)
+
+app = PathaoASGIMiddleware(app)
+
 # Basic HTML response for index
 templates = Jinja2Templates(directory="app/templates")
 

@@ -72,7 +72,7 @@ async def send_telegram_notification(parcel: dict, event_status: str, updated_at
     
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            await client.post(url, json=payload)
+            await client.post(url, json=telegram_payload)
     except Exception as e:
         logging.getLogger(__name__).error(f"Telegram notification failed: {e}")
 
