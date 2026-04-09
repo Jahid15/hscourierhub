@@ -2,6 +2,12 @@ let allParcels = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchParcels();
+    
+    // Bind Filter Interactions
+    const searchEl = document.getElementById('searchInput');
+    const filterEl = document.getElementById('courierFilter');
+    if(searchEl) searchEl.addEventListener('input', renderParcels);
+    if(filterEl) filterEl.addEventListener('change', renderParcels);
 });
 
 async function fetchParcels() {
@@ -25,27 +31,67 @@ async function fetchParcels() {
 }
 
 function getStatusBadge(status) {
-    status = status.toLowerCase();
-    if(status === 'delivered') return `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs uppercase tracking-wider">Delivered</span>`;
-    if(status.includes('cancel') || status.includes('return')) return `<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs uppercase tracking-wider">Failed</span>`;
-    return `<span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs uppercase tracking-wider">${status}</span>`;
+    status = String(status).toLowerCase().trim();
+    
+    // Delivered
+    if(status.includes('delivered') || status === 'success') {
+        return `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-green-200">Delivered</span>`;
+    }
+    // Failed/Returned/Cancelled
+    if(status.includes('cancel') || status.includes('return') || status.includes('fail') || status.includes('rejected')) {
+        return `<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-red-200">${status}</span>`;
+    }
+    // Hold/Wait/Reschedule
+    if(status.includes('hold') || status.includes('wait') || status.includes('reschedule') || status.includes('exchange')) {
+        return `<span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-orange-200">${status}</span>`;
+    }
+    // Transit/Pickup/Progress
+    if(status.includes('transit') || status.includes('pick') || status.includes('dispatch') || status.includes('progress') || status.includes('assign')) {
+        return `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-blue-200">${status}</span>`;
+    }
+    // Created/Pending
+    if(status.includes('pending') || status.includes('created') || status.includes('place')) {
+        return `<span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-gray-200">${status}</span>`;
+    }
+    
+    // Default Unknown
+    return `<span class="px-3 py-1 bg-violet-100 text-violet-700 rounded-full font-bold text-xs uppercase tracking-wider shadow-sm border border-violet-200">${status}</span>`;
 }
 
 function renderParcels() {
     const tbody = document.getElementById('parcelsTableBody');
     if (!tbody) return;
-    if (allParcels.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 font-medium">No parcels logged currently.</td></tr>`;
+    // Execute Filtering Engine
+    const searchEl = document.getElementById('searchInput');
+    const filterEl = document.getElementById('courierFilter');
+    
+    const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
+    const filterVal = filterEl ? filterEl.value.toLowerCase() : 'all';
+    
+    const filteredParcels = allParcels.filter(p => {
+        // Courier Match
+        if(filterVal !== 'all' && strSafe(p.courier) !== filterVal) return false;
+        
+        // Search Match
+        if(searchVal) {
+            const compoundStr = `${strSafe(p.consignment_id)} ${strSafe(p.merchant_order_id)} ${strSafe(p.recipient_name)} ${strSafe(p.recipient_phone)} ${strSafe(p.tracking_code)}`.toLowerCase();
+            if(!compoundStr.includes(searchVal)) return false;
+        }
+        return true;
+    });
+
+    if (filteredParcels.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500 font-medium">No parcels match your visual telemetry filters.</td></tr>`;
         return;
     }
 
     let html = '';
-    allParcels.forEach(p => {
-        // Parse Courier Icon + ID
+    filteredParcels.forEach(p => {
+        // Parse Courier Icon + ID natively assigned to brand identities
         let courierPill = '';
-        if(p.courier === 'steadfast') courierPill = `<span class="inline-flex w-3 h-3 bg-green-500 rounded-full border border-green-700"></span> Steadfast`;
-        if(p.courier === 'pathao') courierPill = `<span class="inline-flex w-3 h-3 bg-red-500 rounded-full border border-red-700"></span> Pathao`;
-        if(p.courier === 'carrybee') courierPill = `<span class="inline-flex w-3 h-3 bg-purple-500 rounded-full border border-purple-700"></span> Carrybee`;
+        if(strSafe(p.courier) === 'steadfast') courierPill = `<span class="inline-flex w-3 h-3 bg-green-500 rounded-full border border-green-700 shadow-sm"></span> <span class="text-green-800 font-bold">Steadfast</span>`;
+        if(strSafe(p.courier) === 'pathao') courierPill = `<span class="inline-flex w-3 h-3 bg-red-500 rounded-full border border-red-700 shadow-sm"></span> <span class="text-red-800 font-bold">Pathao</span>`;
+        if(strSafe(p.courier) === 'carrybee') courierPill = `<span class="inline-flex w-3 h-3 bg-yellow-400 rounded-full border border-yellow-600 shadow-sm"></span> <span class="text-yellow-800 font-bold">Carrybee</span>`;
 
         // Check internal routing failures vs success
         const c_id = p.consignment_id || `<span class="text-gray-400">Not Dispatched</span>`;
@@ -124,4 +170,10 @@ function viewLogistics(parcelId) {
 
 function closeHistoryModal() {
     document.getElementById('historyModal').classList.add('hidden');
+}
+
+// Helper safely stringifies null properties
+function strSafe(val) {
+    if(val === null || val === undefined) return "";
+    return String(val).toLowerCase();
 }
