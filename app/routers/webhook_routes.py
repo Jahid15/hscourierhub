@@ -21,27 +21,46 @@ async def send_telegram_notification(parcel: dict, event_status: str, updated_at
     # but we can do our best or default to 0 if not delivered.
     collected = amount if event_status.strip().lower() == "delivered" else 0
     
-    trk_link = parcel.get("tracking_link", f"https://hscourierhub.onrender.com/parcel-list")
+    # Build Consignment Link securely
+    courier = str(parcel.get("courier", "")).lower()
+    c_id = parcel.get('consignment_id', 'N/A')
+    
+    if courier == "pathao":
+        c_link = f"https://merchant.pathao.com/courier/orders/{c_id}"
+    elif courier == "carrybee":
+        b_id = parcel.get("business_id", "1490")
+        c_link = f"https://merchant.carrybee.com/businesses/{b_id}/orders/{c_id}"
+    elif courier == "steadfast":
+        c_link = f"https://steadfast.com.bd/user/consignment/{c_id}"
+    else:
+        c_link = f"https://hscourierhub.onrender.com/parcel-list"
 
-    msg = f"""📦 Parcel Update [{event_status}]
+    if c_id != "N/A":
+        consignment_display = f'<a href="{c_link}">{c_id}</a>'
+    else:
+        consignment_display = "N/A"
+        
+    phone = parcel.get('recipient_phone', 'N/A')
+    phone_display = f'<a href="tel:{phone}">{phone}</a>' if phone != "N/A" else "N/A"
 
-Consignment : {parcel.get('consignment_id', 'N/A')}
-Order ID    : {parcel.get('merchant_order_id', 'N/A')}
-Status      : {event_status}
-Updated At  : {updated_at}
-Amount      : ৳{amount}
-Collected   : ৳{collected}
+    msg = f"""📦 <b>Parcel Update [{event_status}]</b>
+
+<b>Consignment </b> : {consignment_display}
+<b>Order ID    </b> : {parcel.get('merchant_order_id', 'N/A')}
+<b>Status      </b> : {event_status}
+<b>Updated At  </b> : {updated_at}
+<b>Amount      </b> : ৳{amount}
+<b>Collected   </b> : ৳{collected}
 
 ━━━ Customer Details ━━━
-Name        : {parcel.get('recipient_name', 'N/A')}
-Phone       : {parcel.get('recipient_phone', 'N/A')}
-Address     : {parcel.get('recipient_address', 'N/A')}
-
-🔗 {trk_link}"""
+<b>Name        </b> : {parcel.get('recipient_name', 'N/A')}
+<b>Phone       </b> : {phone_display}
+<b>Address     </b> : {parcel.get('recipient_address', 'N/A')}"""
 
     payload = {
         "chat_id": settings.telegram_chat_id,
         "text": msg,
+        "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
     
