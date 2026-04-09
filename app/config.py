@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # Render URL
     render_external_url: str = ""
 
+    # Telegram Broadcasting
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

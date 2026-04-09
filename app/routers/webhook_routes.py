@@ -1,8 +1,55 @@
 import datetime
+import httpx
+import logging
 from fastapi import APIRouter, Request, Response, BackgroundTasks
+from fastapi.responses import JSONResponse
 from app.database import db
+from app.config import settings
 
 router = APIRouter(tags=["Webhooks"])
+
+async def send_telegram_notification(parcel: dict, event_status: str, updated_at: str):
+    if not settings.telegram_bot_token or not settings.telegram_chat_id:
+        return
+        
+    url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
+    
+    # Calculate amounts
+    amount = parcel.get("cod_amount", 0)
+    
+    # Usually couriers don't send individual 'collected_amount' through simplistic webhooks on every status,
+    # but we can do our best or default to 0 if not delivered.
+    collected = amount if event_status.strip().lower() == "delivered" else 0
+    
+    trk_link = parcel.get("tracking_link", f"https://hscourierhub.onrender.com/parcel-list")
+
+    msg = f"""📦 Parcel Update [{event_status}]
+
+Consignment : {parcel.get('consignment_id', 'N/A')}
+Order ID    : {parcel.get('merchant_order_id', 'N/A')}
+Status      : {event_status}
+Updated At  : {updated_at}
+Amount      : ৳{amount}
+Collected   : ৳{collected}
+
+━━━ Customer Details ━━━
+Name        : {parcel.get('recipient_name', 'N/A')}
+Phone       : {parcel.get('recipient_phone', 'N/A')}
+Address     : {parcel.get('recipient_address', 'N/A')}
+
+🔗 {trk_link}"""
+
+    payload = {
+        "chat_id": settings.telegram_chat_id,
+        "text": msg,
+        "disable_web_page_preview": True
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(url, json=payload)
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Telegram notification failed: {e}")
 
 async def process_webhook(courier: str, payload: dict, consignment_id, merchant_order_id, event_status: str):
     if not consignment_id and not merchant_order_id:
@@ -24,9 +71,10 @@ async def process_webhook(courier: str, payload: dict, consignment_id, merchant_
         return
 
     # Create history entry
+    hist_ts = datetime.datetime.utcnow().isoformat() + "Z"
     hist_entry = {
         "status": event_status,
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "timestamp": hist_ts,
         "raw": payload
     }
     
@@ -41,6 +89,10 @@ async def process_webhook(courier: str, payload: dict, consignment_id, merchant_
             }
         }
     )
+    
+    # Broadcast to Telegram
+    dt_formatted = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    await send_telegram_notification(parcel, event_status, dt_formatted)
 
 @router.post("/api/v1/webhooks/steadfast")
 async def steadfast_webhook(request: Request, background_tasks: BackgroundTasks):
@@ -100,7 +152,17 @@ async def pathao_webhook(request: Request, background_tasks: BackgroundTasks):
     Otherwise tracks order.* events.
     """
     try:
-        payload = await request.json()
+        # Fallback to pure body parse if JSON fails, since Pathao integration test sometimes sends malformed JSON
+        raw_body = await request.body()
+        import json
+        try:
+            payload = json.loads(raw_body)
+        except json.JSONDecodeError:
+            # If it's a completely corrupted test ping, manually scan for the generic event string
+            if b'webhook_integration' in raw_body:
+                payload = {"event": "webhook_integration"}
+            else:
+                return {"status": "error"}
     except Exception:
         return {"status": "error"}
         
@@ -108,9 +170,11 @@ async def pathao_webhook(request: Request, background_tasks: BackgroundTasks):
     
     # Required Challenge Handshake
     if event == "webhook_integration":
-        res = Response(status_code=202)
-        res.headers["X-Pathao-Merchant-Webhook-Integration-Secret"] = "f3992ecc-59da-4cbe-a049-a13da2018d51"
-        return res
+        return JSONResponse(
+            content={"status": "success"},
+            status_code=202,
+            headers={"X-Pathao-Merchant-Webhook-Integration-Secret": "f3992ecc-59da-4cbe-a049-a13da2018d51"}
+        )
         
     consignment_id = payload.get("consignment_id")
     merchant_order_id = payload.get("merchant_order_id")
