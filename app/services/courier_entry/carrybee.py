@@ -31,33 +31,28 @@ class CarrybeeEntry:
         # Enforce Carrybee's minimum length requirement
         if len(query) < 10:
             query = query + " Bangladesh"
-        
-        # We use the native merchant login for the parser now, due to "Hub coverage not found" on public API headers
-        checker = CarrybeeChecker()
-        token = await checker._get_token()
-        if not token:
-            return None, None, "CarryBee merchant login failed (check .env credentials)"
             
-        url = f"https://api-merchant.carrybee.com/api/v2/businesses/{checker.business_id}/address-parser"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Origin": "https://merchant.carrybee.com",
-            "Referer": "https://merchant.carrybee.com/"
-        }
+        url = f"{self.base_url}api/v2/address-details"
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, json={"query": query}, headers=headers)
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.post(url, json={"query": query}, headers=self._get_headers())
+                resp_data = resp.json()
+            except httpx.RequestError as e:
+                return None, None, f"Network Timeout / Reset executing Address Parser: {str(e)}"
+            except Exception as e:
+                return None, None, f"Unexpected Parser Crash: {str(e)}"
             
             if resp.status_code == 200:
-                data = resp.json()
-                if not data.get("error") and data.get("data"):
-                    return data["data"].get("city_id"), data["data"].get("zone_id"), None
-                return None, None, f"Parse internal error: {data}"
+                if not resp_data.get("error") and resp_data.get("data"):
+                    return resp_data["data"].get("city_id"), resp_data["data"].get("zone_id"), None
                 
-            return None, None, f"HTTP {resp.status_code}: {resp.text}"
+                # Handling 422 or logic errors elegantly
+                cause = resp_data.get("message")
+                if resp_data.get("causes"): cause += f" ({resp_data['causes']})"
+                return None, None, f"Parser rejected query: {cause}"
+                
+            return None, None, f"HTTP {resp.status_code}: {resp_data.get('message', 'Unknown API Error')}"
 
     async def create_parcel(self, data: dict, merchant_order_id: str) -> dict:
         url = f"{self.base_url}api/v2/orders"
@@ -89,8 +84,8 @@ class CarrybeeEntry:
              return {
                 "success": False,
                 "courier": "carrybee",
-                "message": f"Auto-parser failed resolving Zone. DBbg: {parse_err} | Endpoint: api/v2/businesses/{self.store_id}/address-parser",
-                "raw_response": {"error": "Parser failed"}
+                "message": f"Carrybee Address auto-parser failed resolving City/Zone. Details: {parse_err}",
+                "raw_response": {"error": "Parser failed block", "details": parse_err}
              }
 
         async with httpx.AsyncClient(timeout=15.0) as client:
