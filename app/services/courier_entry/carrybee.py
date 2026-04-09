@@ -3,9 +3,12 @@ from app.services.fraud_check.carrybee import CarrybeeChecker
 
 class CarrybeeEntry:
     def __init__(self, creds: dict):
-        self.base_url = creds.get('base_url') or 'https://api-merchant.carrybee.com/'
-        if not self.base_url.endswith('/'):
-            self.base_url += '/'
+        base = creds.get('base_url') or 'https://developers.carrybee.com/'
+        # Force correct developer API if legacy api-merchant is stored in DB
+        if 'api-merchant' in base:
+            base = 'https://developers.carrybee.com/'
+            
+        self.base_url = base if base.endswith('/') else base + '/'
             
         self.client_id = creds.get('client_id') or ''
         self.client_secret = creds.get('client_secret') or ''
