@@ -18,6 +18,8 @@ async function fetchParcels() {
             `;
         }
     } catch (error) {
+        let el = document.getElementById('parcelTableBody');
+        if(el) el.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Failed to load payload.</td></tr>`;
         console.error("Error:", error);
     }
 }
@@ -26,10 +28,7 @@ function getStatusBadge(status) {
     status = status.toLowerCase();
     if(status === 'delivered') return `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold text-xs uppercase tracking-wider">Delivered</span>`;
     if(status.includes('cancel') || status.includes('return')) return `<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full font-bold text-xs uppercase tracking-wider">Failed</span>`;
-    } catch (e) {
-        let el = document.getElementById('parcelTableBody');
-        if(el) el.innerHTML = `<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Failed to load payload.</td></tr>`;
-    }
+    return `<span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold text-xs uppercase tracking-wider">${status}</span>`;
 }
 
 function renderParcels() {
