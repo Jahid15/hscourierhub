@@ -15,9 +15,10 @@
                 <div class="sticky top-6">
                     <h3 class="font-bold text-gray-800 uppercase text-xs tracking-wider mb-3">Contents</h3>
                     <ul class="space-y-2 text-sm text-gray-600">
-                        <li><a href="#auth" class="hover:text-blue-600">Authentication</a></li>
-                        <li><a href="#fraud-check" class="hover:text-blue-600">Fraud Check API</a></li>
+                        <li><a href="#auth" class="hover:text-blue-600">Authentication & Postman Setup</a></li>
                         <li><a href="#parcel-create" class="hover:text-blue-600">Parcel Create API</a></li>
+                        <li><a href="#parcel-tracking" class="hover:text-blue-600">Parcel Tracking API</a></li>
+                        <li><a href="#fraud-check" class="hover:text-blue-600">Fraud Check API</a></li>
                         <li><a href="#merchant-id" class="hover:text-blue-600">Merchant ID API</a></li>
                     </ul>
                 </div>
@@ -28,9 +29,19 @@
                 
                 <!-- Auth Section -->
                 <section id="auth">
-                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Authentication</h2>
-                    <p class="text-sm text-gray-600 mb-4">All API requests require the <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header.</p>
-                    <div class="bg-gray-800 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Authentication & Postman Setup</h2>
+                    <p class="text-sm text-gray-600 mb-4">All external API requests to the system securely require the <code class="bg-gray-100 px-1 rounded">X-API-Key</code> header to pass authentication. This securely blocks unauthorized systems from creating parcels or accessing your courier data.</p>
+                    
+                    <h4 class="font-semibold text-sm mt-4 mb-2">How to test in Postman:</h4>
+                    <ol class="list-decimal pl-5 text-sm text-gray-600 mb-4 space-y-1 mt-2">
+                        <li>Open a new Request in Postman and select your HTTP verb (e.g. <b>POST</b>).</li>
+                        <li>Paste your endpoint URL (e.g. <code>https://hscourierhub.onrender.com/api/v1/parcel/create</code>).</li>
+                        <li>Navigate to the <b>Headers</b> tab in Postman.</li>
+                        <li>Add a new Key named <code>X-API-Key</code>.</li>
+                        <li>Set the Value to your external API secret (matching your <code>EXTERNAL_API_KEY</code> environment variable).</li>
+                    </ol>
+
+                    <div class="bg-gray-800 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto shadow-inner">
                         <span class="text-green-400">X-API-Key:</span> your-secret-api-key
                     </div>
                 </section>
@@ -77,19 +88,64 @@
                         <span class="bg-green-100 text-green-800 font-bold px-2 py-1 rounded text-xs">POST</span>
                         <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-800">/api/v1/parcel/create</code>
                     </div>
-                    <p class="text-sm text-gray-600 mb-2">Creates a parcel in the chosen courier system.</p>
+                    <p class="text-sm text-gray-600 mb-2">Pushes a new parcel entry autonomously into the requested courier pipeline and securely returns the Official Consignment and Merchant Order IDs for your system to track.</p>
                     
-                    <h4 class="font-semibold text-sm mt-4 mb-2">Request Body Example:</h4>
+                    <h4 class="font-semibold text-sm mt-4 mb-2">Request Body (JSON):</h4>
                     <div class="bg-gray-800 text-green-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
 <pre>{
-  "courier": "carrybee",
+  "courier": "carrybee", 
   "business": "hellosquare",
-  "recipient_name": "Jahid",
+  "recipient_name": "Jahid Hossain",
   "recipient_phone": "01676225090",
   "recipient_address": "Uttara, Dhaka-1230",
   "cod_amount": 1050,
   "city_id": 14,
   "zone_id": 151
+}</pre>
+                    </div>
+
+                    <h4 class="font-semibold text-sm mt-4 mb-2">Response Example:</h4>
+                    <div class="bg-gray-800 text-green-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+<pre>{
+  "success": true,
+  "message": "Order created in carrybee",
+  "consignment_id": "F0409JH4PQD",
+  "merchant_order_id": "HS10982",
+  "tracking_code": "0409JH4PQD",
+  "courier": "carrybee"
+}</pre>
+                    </div>
+                </section>
+
+                <!-- Parcel Tracking -->
+                <section id="parcel-tracking">
+                    <h2 class="text-xl font-bold border-b border-gray-200 pb-2 mb-4">Parcel Tracking Status API</h2>
+                    <div class="mb-4">
+                        <span class="bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded text-xs">GET</span>
+                        <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-sm text-gray-800">/api/v1/parcels/{merchant_order_id}</code>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">Lookup the exact real-time telemetry updates your system collected via Automated Webhooks using the merchant_order_id returned during creation.</p>
+                    
+                    <h4 class="font-semibold text-sm mt-4 mb-2">Response Example:</h4>
+                    <div class="bg-gray-800 text-green-300 p-4 rounded-lg font-mono text-xs overflow-x-auto">
+<pre>{
+  "success": true,
+  "data": {
+    "merchant_order_id": "HS10982",
+    "consignment_id": "F0409JH4PQD",
+    "status": "Delivered",
+    "cod_amount": 1050,
+    "status_history": [
+      {
+        "status": "Order Picked",
+        "timestamp": "2026-04-10T02:00:00Z"
+      },
+      {
+        "status": "Delivered",
+        "timestamp": "2026-04-10T14:49:15Z"
+      }
+    ]
+  }
 }</pre>
                     </div>
                 </section>
