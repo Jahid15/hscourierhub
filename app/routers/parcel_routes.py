@@ -24,25 +24,24 @@ async def extract_address_ai(data: AIExtractRequest, user: dict = Depends(get_cu
     if not settings.openai_api_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key not configured")
         
-    prompt = f"""
+    system_prompt = """
 Extract the customer details from the following raw text into a strict JSON format.
 Make sure the JSON keys are EXACTLY: "name", "phone", "address", "cod_amount".
 For cod_amount, just return the integer number (e.g. 1340).
 If any field is missing, leave it as an empty string (or 0 for cod_amount).
 You MUST return ONLY a valid JSON object.
-
-Raw Text:
-{data.text}
 """
     headers = {
         "Authorization": f"Bearer {settings.openai_api_key}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "gpt-4o-mini",
-        "messages": [{"role": "user", "content": prompt}],
-        "response_format": { "type": "json_object" },
-        "temperature": 0.1
+        "model": "gpt-5-nano",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": data.text}
+        ],
+        "response_format": { "type": "json_object" }
     }
     
     async with httpx.AsyncClient() as client:
