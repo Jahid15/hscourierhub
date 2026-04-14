@@ -25,22 +25,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="recipient_name" name="recipient_name" required placeholder="Full Name"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Customer Phone <span class="text-red-500">*</span></label>
                     <input type="tel" id="recipient_phone" name="recipient_phone" required placeholder="01XXXXXXXXX"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                     <!-- Mini fraud check hook -->
                     <p id="miniFraudResult" class="text-xs mt-1 text-gray-500 hidden cursor-pointer hover:underline"></p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name <span class="text-red-500">*</span></label>
-                    <input type="text" id="recipient_name" name="recipient_name" required placeholder="Full Name"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Address <span class="text-red-500">*</span></label>
-                <textarea id="recipient_address" name="recipient_address" required rows="2" placeholder="Full Delivery Address"
+                <div class="flex justify-between items-end mb-1">
+                    <label class="block text-sm font-medium text-gray-700">Address <span class="text-red-500">*</span></label>
+                    <button type="button" id="aiExtractBtn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-xs px-3 py-1 rounded border border-indigo-200 transition-colors flex items-center shadow-sm">
+                        <span>✨ Extract Details</span>
+                        <div id="aiExtractLoader" class="hidden spinner ml-2" style="width: 12px; height: 12px; border-color: rgba(67, 56, 202, 0.3); border-top-color: #4338ca;"></div>
+                    </button>
+                </div>
+                <textarea id="recipient_address" name="recipient_address" required rows="2" placeholder="Paste full string here (e.g., 'Jahid 1340tk 01676225090 uttara') and click Extract..."
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
             </div>
 

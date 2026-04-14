@@ -65,6 +65,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Handle AI Auto-Extraction
+    const extractBtn = document.getElementById('aiExtractBtn');
+    const extractLoader = document.getElementById('aiExtractLoader');
+    const addressInput = document.getElementById('recipient_address');
+    
+    if (extractBtn && addressInput) {
+        extractBtn.addEventListener('click', async () => {
+            const rawText = addressInput.value.trim();
+            if (!rawText) {
+                alert("Please paste the raw text (like phone, address, 1400tk) into the address box first.");
+                return;
+            }
+            
+            extractBtn.disabled = true;
+            extractLoader.classList.remove('hidden');
+            
+            try {
+                const resp = await fetch('/api/v1/ai/extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: rawText })
+                });
+                
+                const data = await resp.json();
+                if (data.success && data.data) {
+                    const extracted = data.data;
+                    
+                    if (extracted.name) document.getElementById('recipient_name').value = extracted.name;
+                    if (extracted.phone) {
+                        const phoneInput = document.getElementById('recipient_phone');
+                        phoneInput.value = extracted.phone;
+                        phoneInput.dispatchEvent(new Event('input')); // Re-trigger live Fraud Check magically!
+                    }
+                    if (extracted.cod_amount) document.getElementById('cod_amount').value = extracted.cod_amount;
+                    if (extracted.address) addressInput.value = extracted.address;
+                    
+                } else {
+                    alert('AI parsing failed. Please check backend logs or model API Key constraints.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Timeout or offline error communicating with AI core.');
+            } finally {
+                extractBtn.disabled = false;
+                extractLoader.classList.add('hidden');
+            }
+        });
+    }
+
     // Handle Dynamic Routing Selection Change
     namespaceSelect.addEventListener('change', async () => {
         const id = namespaceSelect.value;
