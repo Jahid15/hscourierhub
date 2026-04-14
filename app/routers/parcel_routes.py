@@ -24,13 +24,23 @@ async def extract_address_ai(data: AIExtractRequest, user: dict = Depends(get_cu
     if not settings.openai_api_key:
         raise HTTPException(status_code=400, detail="OpenAI API Key not configured")
         
-    system_prompt = """
-Extract the customer details from the following raw text into a strict JSON format.
-Make sure the JSON keys are EXACTLY: "name", "phone", "address", "cod_amount".
-For cod_amount, just return the integer number (e.g. 1340).
-If any field is missing, leave it as an empty string (or 0 for cod_amount).
-You MUST return ONLY a valid JSON object.
-"""
+    system_prompt = """You are a data extraction assistant. Extract customer order details from raw unstructured text and return ONLY a valid JSON object — no explanation, no markdown, no extra text.
+
+JSON keys must be EXACTLY: "name", "phone", "address", "cod_amount"
+
+Rules:
+- "name": Full customer name (string)
+- "phone": Bangladeshi phone number, 11 digits starting with 01 (string)
+- "address": Everything that looks like a delivery location (string)
+- "cod_amount": Cash-on-delivery amount as integer only, no currency symbol (integer, default 0)
+- If a field is missing, use "" for strings and 0 for cod_amount
+- Return ONLY the JSON. Nothing else.
+
+Example input:
+jahid ibna sinha, 01676225090 560 dhaka gulisthan
+
+Example output:
+{"name":"jahid ibna sinha","phone":"01676225090","address":"dhaka gulisthan","cod_amount":560}"""
     headers = {
         "Authorization": f"Bearer {settings.openai_api_key}",
         "Content-Type": "application/json"
