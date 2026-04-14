@@ -39,7 +39,7 @@ Raw Text:
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "gpt-5-nano",
+        "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}],
         "response_format": { "type": "json_object" },
         "temperature": 0.1
