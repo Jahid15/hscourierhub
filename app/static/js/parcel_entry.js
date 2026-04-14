@@ -167,15 +167,30 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if(resp.ok && result.success) {
                 successBox.classList.remove('hidden');
-                document.getElementById('resMerchantId').textContent = result.merchant_order_id;
                 document.getElementById('resConsignment').textContent = result.consignment_id || result.tracking_code || 'N/A';
                 
-                if(result.delivery_fee) {
-                    document.getElementById('resDeliveryFee').textContent = `Delivery Fee: ৳${result.delivery_fee}`;
-                } else {
-                    document.getElementById('resDeliveryFee').textContent = '';
-                }
+                // Build literal SMS string template
+                const smsText = `Dear, ${data.recipient_name}
+Your order has been placed and here is your
+order id: ${result.merchant_order_id}
+and your total cod is: ৳${data.cod_amount}`;
                 
+                document.getElementById('resCopyText').textContent = smsText;
+                
+                const cbBtn = document.getElementById('copyMsgBtn');
+                const cbText = document.getElementById('copyConfirmText');
+                
+                // Remove old event listeners by cloning if necessary or just override assignment
+                cbBtn.onclick = async () => {
+                    try {
+                        await navigator.clipboard.writeText(smsText);
+                        cbText.classList.remove('hidden');
+                        setTimeout(() => cbText.classList.add('hidden'), 2000);
+                    } catch (err) {
+                        alert('Could not copy to clipboard automatically.');
+                    }
+                };
+
                 // e.target.reset(); // Optionally reset form
             } else {
                 errorBox.classList.remove('hidden');
