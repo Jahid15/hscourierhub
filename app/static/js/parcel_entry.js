@@ -170,10 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('resConsignment').textContent = result.consignment_id || result.tracking_code || 'N/A';
                 
                 // Build literal SMS string template
-                const smsText = `Dear, ${data.recipient_name}
-Your order has been placed and here is your
-order id: ${result.merchant_order_id}
-and your total cod is: ৳${data.cod_amount}`;
+                const smsText = `Dear ${data.recipient_name},
+Thank you for your order! ✅
+
+📦 Order ID: ${result.merchant_order_id}
+💳 Amount to Pay: ৳${data.cod_amount} 
+(Cash on Delivery)`;
                 
                 document.getElementById('resCopyText').textContent = smsText;
                 
