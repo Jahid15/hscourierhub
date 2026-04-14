@@ -99,20 +99,106 @@ document.addEventListener('DOMContentLoaded', () => {
                         phoneInput.dispatchEvent(new Event('input')); // Re-trigger live Fraud Check magically!
                     }
                     if (extracted.cod_amount) document.getElementById('cod_amount').value = extracted.cod_amount;
-                    if (extracted.address) addressInput.value = extracted.address;
+                    if (extracted.address) {
+                        addressInput.value = extracted.address;
+                        // Fire auto-mapper silently
+                        triggerSilentAutoMap(extracted.address);
+                    }
                     
                 } else {
                     alert('AI parsing failed. Please check backend logs or model API Key constraints.');
                 }
             } catch (err) {
                 console.error(err);
-                alert('Timeout or offline error communicating with AI core.');
+                alert('Timeout or offline error communicating with AI core. Output JSON might be unstable.');
             } finally {
                 extractBtn.disabled = false;
                 extractLoader.classList.add('hidden');
             }
         });
     }
+
+    // Auto-Mapper Protocol
+    async function triggerSilentAutoMap(addressString) {
+        const courier = courierInput.value.toLowerCase();
+        if(courier !== 'carrybee') return;
+        
+        try {
+            const resp = await fetch('/api/v1/locations/auto-map', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courier: courier, address: addressString })
+            });
+            const dat = await resp.json();
+            if(dat.success) {
+                // Ensure City dropdown matches output
+                const cSelect = document.getElementById('city_id');
+                if(cSelect && dat.city_id) {
+                    cSelect.value = dat.city_id;
+                    await handleCityChange(cSelect.value, courier);
+                    
+                    const zSelect = document.getElementById('zone_id');
+                    if(zSelect && dat.zone_id) {
+                        zSelect.value = dat.zone_id;
+                    }
+                }
+            }
+        } catch(e) { console.error("Auto mapper failed silently:", e); }
+    }
+    
+    // Address Box manually typed trigger
+    if (addressInput) {
+        let addrTimeout;
+        addressInput.addEventListener('input', () => {
+            clearTimeout(addrTimeout);
+            addrTimeout = setTimeout(() => {
+                const text = addressInput.value.trim();
+                if (text.length > 5) triggerSilentAutoMap(text);
+            }, 1000);
+        });
+    }
+
+    // Location API Logic
+    async function loadCities(courierStr) {
+        const citySelect = document.getElementById('city_id');
+        const zoneSelect = document.getElementById('zone_id');
+        citySelect.innerHTML = '<option value="">Loading Cities...</option>';
+        citySelect.disabled = true;
+        zoneSelect.innerHTML = '<option value="">Select City First...</option>';
+        zoneSelect.disabled = true;
+        
+        try {
+            const res = await fetch(`/api/v1/locations/cities?courier=${courierStr}`);
+            const data = await res.json();
+            if(data.length > 0) {
+                citySelect.innerHTML = '<option value="">-- Choose City --</option>';
+                data.forEach(c => {
+                    citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                });
+                citySelect.disabled = false;
+            }
+        } catch(e) {}
+    }
+
+    async function handleCityChange(cityId, courierStr) {
+        const zoneSelect = document.getElementById('zone_id');
+        zoneSelect.innerHTML = '<option value="">Loading Zones...</option>';
+        zoneSelect.disabled = true;
+        
+        try {
+            const res = await fetch(`/api/v1/locations/zones?courier=${courierStr}&city_id=${cityId}`);
+            const data = await res.json();
+            zoneSelect.innerHTML = '<option value="">-- Choose Zone --</option>';
+            data.forEach(z => {
+                zoneSelect.innerHTML += `<option value="${z.id}">${z.name}</option>`;
+            });
+            zoneSelect.disabled = false;
+        } catch(e) {}
+    }
+
+    document.getElementById('city_id').addEventListener('change', (e) => {
+        handleCityChange(e.target.value, courierInput.value.toLowerCase());
+    });
 
     // Handle Dynamic Routing Selection Change
     namespaceSelect.addEventListener('change', async () => {
@@ -122,13 +208,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!seq) {
             courierInput.value = '';
             businessInput.value = '';
+            document.getElementById('locationGrid').classList.add('hidden');
             return;
         }
 
         const courier = seq.courier;
         courierInput.value = courier;
         businessInput.value = seq.business_name;
-        // The backend handles location logic auto-magically now!
+        
+        if (courier.toLowerCase() === 'carrybee') {
+            document.getElementById('locationGrid').classList.remove('hidden');
+            loadCities(courier.toLowerCase());
+        } else {
+            document.getElementById('locationGrid').classList.add('hidden');
+            document.getElementById('city_id').removeAttribute('required');
+            document.getElementById('zone_id').removeAttribute('required');
+        }
     });
 
     // Form Submit

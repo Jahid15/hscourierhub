@@ -29,7 +29,7 @@ Extract the customer details from the following raw text into a strict JSON form
 Make sure the JSON keys are EXACTLY: "name", "phone", "address", "cod_amount".
 For cod_amount, just return the integer number (e.g. 1340).
 If any field is missing, leave it as an empty string (or 0 for cod_amount).
-Do NOT return markdown blocks (like ```json), ONLY output the raw JSON object.
+You MUST return ONLY a valid JSON object.
 
 Raw Text:
 {data.text}
@@ -41,6 +41,7 @@ Raw Text:
     payload = {
         "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}],
+        "response_format": { "type": "json_object" },
         "temperature": 0.1
     }
     
@@ -51,19 +52,25 @@ Raw Text:
             res_data = resp.json()
             content = res_data["choices"][0]["message"]["content"].strip()
             
-            # Clean possible markdown wrapping
-            if content.startswith("```json"):
-                content = content[7:]
-            elif content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-                
-            parsed = json.loads(content.strip())
+            # Output is now perfectly native JSON
+            parsed = json.loads(content)
             return {"success": True, "data": parsed}
             
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+class AutoMapRequest(BaseModel):
+    courier: str
+    address: str
+
+@router.post("/api/v1/locations/auto-map", tags=["Locations Tracking", "AI Tracking"])
+async def auto_map_location(data: AutoMapRequest):
+    if data.courier.lower() == "carrybee":
+        c_id, z_id, err = await CarrybeeEntry(settings.model_dump()).parse_address(data.address)
+        return {"success": not err, "city_id": c_id, "zone_id": z_id, "error": err}
+    
+    # Allow Pathao or Steadfast overrides in the future
+    return {"success": False, "error": "Auto-mapping currently only supported implicitly for Carrybee ecosystems."}
 
 @router.post("/api/v1/parcel/create", response_model=ParcelCreateResponse, tags=["Parcel Entry"])
 async def create_parcel_api(data: ParcelCreateRequest, user: dict = Depends(get_current_user)):
