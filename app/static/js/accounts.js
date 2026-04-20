@@ -40,7 +40,7 @@ function initSettingsListeners() {
 
 async function loadAccounts() {
     const tbody = document.getElementById('accountsTableBody');
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">Loading accounts...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">Loading accounts...</td></tr>';
     
     try {
         const resp = await fetch('/api/v1/accounts/fraud-check');
@@ -48,7 +48,7 @@ async function loadAccounts() {
         
         tbody.innerHTML = '';
         if(accounts.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500">No Steadfast accounts found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-gray-500">No Steadfast accounts found.</td></tr>';
             return;
         }
 
@@ -106,7 +106,7 @@ async function loadAccounts() {
             tbody.appendChild(tr);
         });
     } catch(err) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-red-500">Error loading accounts: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-red-500">Error loading accounts: ${err.message}</td></tr>`;
     }
 }
 
