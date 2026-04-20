@@ -67,10 +67,9 @@ class SteadfastChecker:
                 
                 if csrf_token:
                     auth_headers = {
+                        **headers,
                         "X-CSRF-TOKEN": csrf_token,
-                        "X-XSRF-TOKEN": xsrf_token,
-                        "User-Agent": headers["User-Agent"],
-                        "X-Requested-With": "XMLHttpRequest"
+                        "X-XSRF-TOKEN": xsrf_token
                     }
                     client.headers.update(auth_headers)
                     
@@ -199,7 +198,7 @@ class SteadfastChecker:
                         
                     # Identify Global Auth/Ban Errors that implicitly kill Method 2 as well
                     elif data.get("auth_failed"):
-                        result["errors"].append(f"Cached Authentication Rejected [{acc['email']}]")
+                        result["errors"].append(f"Gateway Authenticaton Failed [{acc['email']}]")
                         continue # Instant Account Rotation!
                         
                     elif "not active" in str(data.get("error", "")).lower():
