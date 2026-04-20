@@ -109,7 +109,7 @@ class SteadfastChecker:
             }}
         )
 
-    async def _try_api(self, client: httpx.AsyncClient, account: dict, phone: str, api_type: str) -> tuple[bool, dict]:
+    async def _try_api(self, client: httpx.AsyncClient, account: dict, phone: str, api_type: str, retry=True) -> tuple[bool, dict]:
         if api_type == 'fraud':
             url = f"{self.base_url}/user/frauds/check/{phone}"
             limit_key = "fraud_limit"
@@ -127,6 +127,14 @@ class SteadfastChecker:
         if resp.status_code in [401, 403, 302] or "login" in str(resp.url).lower() or "<html" in resp.text.lower():
             if account['email'] in SESSION_CACHE:
                 del SESSION_CACHE[account['email']]
+            
+            # Recursive Re-Authentication Protocol
+            if retry:
+                client.cookies.clear()
+                client.headers.clear()
+                if await self._try_login(client, account):
+                    return await self._try_api(client, account, phone, api_type, retry=False)
+                    
             return False, {"error": "Authentication dropped explicitly by Steadfast gateway", "auth_failed": True}
         
         try:
