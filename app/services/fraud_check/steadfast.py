@@ -76,7 +76,8 @@ class SteadfastChecker:
                     
                     # Store session globally natively
                     try:
-                        skip_mins = int(account.get("login_skip_minutes", 60))
+                        settings = await db.app_settings.find_one({"_id": "cache_settings"})
+                        skip_mins = int(settings.get("steadfast_login_skip_minutes", 60)) if settings else 60
                     except:
                         skip_mins = 60
                         

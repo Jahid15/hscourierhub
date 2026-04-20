@@ -22,22 +22,29 @@ async def accounts_page(request: Request, user: dict = Depends(get_current_user_
 # --- System Settings API ---
 class CacheSetting(BaseModel):
     enabled: bool
+    steadfast_login_skip_minutes: int = 60
 
 @router.get("/api/v1/settings/cache")
 async def get_cache_setting(user: dict = Depends(get_current_user)):
     setting = await db.app_settings.find_one({"_id": "cache_settings"})
     if not setting:
-        return {"enabled": True}
-    return {"enabled": setting.get("global_cache_enabled", True)}
+        return {"enabled": True, "steadfast_login_skip_minutes": 60}
+    return {
+        "enabled": setting.get("global_cache_enabled", True),
+        "steadfast_login_skip_minutes": setting.get("steadfast_login_skip_minutes", 60)
+    }
 
 @router.post("/api/v1/settings/cache")
 async def update_cache_setting(data: CacheSetting, user: dict = Depends(get_current_user)):
     await db.app_settings.update_one(
         {"_id": "cache_settings"},
-        {"$set": {"global_cache_enabled": data.enabled}},
+        {"$set": {
+            "global_cache_enabled": data.enabled,
+            "steadfast_login_skip_minutes": data.steadfast_login_skip_minutes
+        }},
         upsert=True
     )
-    return {"success": True, "enabled": data.enabled}
+    return {"success": True, "enabled": data.enabled, "steadfast_login_skip_minutes": data.steadfast_login_skip_minutes}
 
 # --- Steadfast Fraud Check Accounts API ---
 

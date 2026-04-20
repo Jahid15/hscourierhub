@@ -10,6 +10,8 @@ async function loadSettings() {
         const data = await resp.json();
         const toggle = document.getElementById('globalCacheToggle');
         if (toggle) toggle.checked = data.enabled;
+        const skipInput = document.getElementById('globalSkipTime');
+        if (skipInput) skipInput.value = data.steadfast_login_skip_minutes || 60;
     } catch (err) {
         console.error("Failed to load cache settings", err);
     }
@@ -20,11 +22,13 @@ function initSettingsListeners() {
     if(toggle) {
         toggle.addEventListener('change', async (e) => {
             const enabled = e.target.checked;
+            const skipInput = document.getElementById('globalSkipTime');
+            const skipMins = parseInt(skipInput.value) || 60;
             try {
                 const resp = await fetch('/api/v1/settings/cache', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ enabled: enabled })
+                    body: JSON.stringify({ enabled: enabled, steadfast_login_skip_minutes: skipMins })
                 });
                 if(!resp.ok) {
                     alert('Failed to update global cache setting');
@@ -33,6 +37,34 @@ function initSettingsListeners() {
             } catch(err) {
                 alert('Network error updating setting');
                 e.target.checked = !enabled; // revert on failure
+            }
+        });
+    }
+
+    const saveSkipBtn = document.getElementById('saveGlobalSkipBtn');
+    if(saveSkipBtn) {
+        saveSkipBtn.addEventListener('click', async () => {
+            const toggle = document.getElementById('globalCacheToggle');
+            const skipInput = document.getElementById('globalSkipTime');
+            const skipMins = parseInt(skipInput.value) || 60;
+            
+            saveSkipBtn.textContent = '...';
+            try {
+                const resp = await fetch('/api/v1/settings/cache', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ enabled: toggle ? toggle.checked : true, steadfast_login_skip_minutes: skipMins })
+                });
+                if(resp.ok) {
+                    saveSkipBtn.textContent = 'Saved!';
+                    setTimeout(() => saveSkipBtn.textContent = 'Save', 2000);
+                } else {
+                    alert('Failed to update Settings');
+                    saveSkipBtn.textContent = 'Save';
+                }
+            } catch(err) {
+                alert('Network error');
+                saveSkipBtn.textContent = 'Save';
             }
         });
     }
@@ -96,7 +128,6 @@ async function loadAccounts() {
                         <div class="${fColor} h-1.5 rounded-full" style="width: ${Math.min(fPct, 100)}%"></div>
                     </div>
                 </td>
-                <td class="px-4 py-3 text-center text-xs text-gray-800 border-l border-gray-200 font-semibold">${acc.login_skip_minutes || 60}m</td>
                 <td class="px-4 py-3 text-center text-xs text-gray-500 border-l border-gray-200">${lastUsed}</td>
                 <td class="px-4 py-3 text-center border-l border-gray-200">
                     <button onclick='editAccount(${JSON.stringify(acc)})' class="text-blue-600 hover:text-blue-800 mr-2" title="Edit">✏️</button>
@@ -116,7 +147,6 @@ function openAddModal() {
     document.getElementById('accPassword').value = '';
     document.getElementById('accConsLimit').value = '10';
     document.getElementById('accFraudLimit').value = '5';
-    document.getElementById('accLoginSkip').value = '60';
     
     document.getElementById('modalTitle').textContent = 'Add Account';
     document.getElementById('pwRequiredStar').classList.remove('hidden');
@@ -131,7 +161,6 @@ window.editAccount = function(acc) {
     document.getElementById('accPassword').value = acc.password; // masked usually
     document.getElementById('accConsLimit').value = acc.consignment_limit;
     document.getElementById('accFraudLimit').value = acc.fraud_limit;
-    document.getElementById('accLoginSkip').value = acc.login_skip_minutes || 60;
     
     document.getElementById('modalTitle').textContent = 'Edit Account';
     document.getElementById('pwRequiredStar').classList.add('hidden');
@@ -153,8 +182,7 @@ document.getElementById('accountForm').addEventListener('submit', async (e) => {
     const payload = {
         email: document.getElementById('accEmail').value,
         consignment_limit: parseInt(document.getElementById('accConsLimit').value),
-        fraud_limit: parseInt(document.getElementById('accFraudLimit').value),
-        login_skip_minutes: parseInt(document.getElementById('accLoginSkip').value)
+        fraud_limit: parseInt(document.getElementById('accFraudLimit').value)
     };
     
     const pw = document.getElementById('accPassword').value;

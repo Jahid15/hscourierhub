@@ -6,14 +6,12 @@ class SteadfastAccountCreate(BaseModel):
     password: str
     consignment_limit: int = 10
     fraud_limit: int = 5
-    login_skip_minutes: int = 60
 
 class SteadfastAccountUpdate(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
     consignment_limit: Optional[int] = None
     fraud_limit: Optional[int] = None
-    login_skip_minutes: Optional[int] = None
     status_login: Optional[str] = None
     status_consignment: Optional[str] = None
     status_fraud: Optional[str] = None
