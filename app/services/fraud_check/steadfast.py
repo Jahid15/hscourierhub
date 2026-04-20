@@ -2,13 +2,28 @@ import httpx
 from bs4 import BeautifulSoup
 import urllib.parse
 from app.database import db
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Global Dictionary: { email: {"cookies": dict, "headers": dict, "expires_at": datetime} }
+SESSION_CACHE = {}
 
 class SteadfastChecker:
     def __init__(self):
         self.base_url = "https://steadfast.com.bd"
 
     async def _try_login(self, client: httpx.AsyncClient, account: dict) -> bool:
+        email = account['email']
+        
+        # 1. Attempt to bypass login entirely via Memory Cache
+        if email in SESSION_CACHE:
+            cached = SESSION_CACHE[email]
+            if datetime.utcnow() < cached["expires_at"]:
+                client.cookies.update(cached["cookies"])
+                client.headers.update(cached["headers"])
+                return True
+            else:
+                del SESSION_CACHE[email] # Expired cache
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json, text/plain, */*",
@@ -19,7 +34,7 @@ class SteadfastChecker:
             "Sec-Fetch-Site": "same-origin"
         }
         try:
-            # 1. Get login page
+            # 2. Get login page
             resp = await client.get(f"{self.base_url}/login", headers=headers)
             soup = BeautifulSoup(resp.text, 'html.parser')
             token_elem = soup.find('input', {'name': '_token'})
@@ -51,12 +66,26 @@ class SteadfastChecker:
                 xsrf_token = urllib.parse.unquote(xsrf_cookie) if xsrf_cookie else ""
                 
                 if csrf_token:
-                    client.headers.update({
+                    auth_headers = {
                         "X-CSRF-TOKEN": csrf_token,
                         "X-XSRF-TOKEN": xsrf_token,
                         "User-Agent": headers["User-Agent"],
                         "X-Requested-With": "XMLHttpRequest"
-                    })
+                    }
+                    client.headers.update(auth_headers)
+                    
+                    # Store session globally natively
+                    try:
+                        skip_mins = int(account.get("login_skip_minutes", 60))
+                    except:
+                        skip_mins = 60
+                        
+                    SESSION_CACHE[email] = {
+                        "cookies": dict(client.cookies),
+                        "headers": auth_headers,
+                        "expires_at": datetime.utcnow() + timedelta(minutes=skip_mins)
+                    }
+                    
                     return True
             return False
             
@@ -92,6 +121,12 @@ class SteadfastChecker:
             status_key = "status_consignment"
 
         resp = await client.get(url)
+        
+        # Dead Token / 401 Catch Block
+        if resp.status_code in [401, 403, 302] or "login" in str(resp.url).lower() or "<html" in resp.text.lower():
+            if account['email'] in SESSION_CACHE:
+                del SESSION_CACHE[account['email']]
+            return False, {"error": "Authentication dropped explicitly by Steadfast gateway", "auth_failed": True}
         
         try:
             data = resp.json()
@@ -133,34 +168,54 @@ class SteadfastChecker:
                 
             async with httpx.AsyncClient() as client:
                 if not await self._try_login(client, acc):
+                    if acc['email'] in SESSION_CACHE:
+                        del SESSION_CACHE[acc['email']]
+                        
                     client.cookies.clear()
+                    client.headers.clear()
+                    
                     if not await self._try_login(client, acc):
                         await db.steadfast_check_accounts.update_one({"_id": acc["_id"]}, {"$set": {"status_login": "failed"}})
                         result["errors"].append(f"Login failed on {acc['email']}")
                         continue
                 
-                # Check Endpoint 1
+                # Check Endpoint 1 (Method 1: fraud_search_ui)
                 if fraud_available:
                     success, data = await self._try_api(client, acc, phone, 'fraud')
+                    
                     if success:
                         result["data"] = data
                         result["errors"] = []
-                        break
+                        break # Found data successfully natively
+                        
+                    # Identify Global Auth/Ban Errors that implicitly kill Method 2 as well
+                    elif data.get("auth_failed"):
+                        result["errors"].append(f"Cached Authentication Rejected [{acc['email']}]")
+                        continue # Instant Account Rotation!
+                        
+                    elif "not active" in str(data.get("error", "")).lower():
+                        result["errors"].append(f"Banned Account Automatically Bypassed [{acc['email']}]")
+                        continue # Instant Account Rotation! Method 2 will be categorically dead here anyway
+                        
                     elif data.get("limit_hit"):
-                        pass # proceed to check Consignment
+                        # Graceful fallback, Account is structurally still alive! 
+                        pass # proceed natively to check Consignment endpoint exactly below
+                        
                     else:
                         result["errors"].append(f"Fraud fail [{acc['email']}]: {data.get('error', data)}")
-                        pass # proceed to check Consignment
+                        pass # proceed natively to check Consignment
                 
-                # Check Endpoint 2
+                # Check Endpoint 2 (Method 2: add_parcel_fraud_search)
                 if consignment_available:
                     success, data = await self._try_api(client, acc, phone, 'consignment')
+                    
                     if success:
                         result["data"] = data
                         result["errors"] = []
-                        break
+                        break # Found data successfully natively via fallback
+                        
                     else:
-                        result["errors"].append(f"Consignment fetch fail on {acc['email']}")
-                        continue 
+                        result["errors"].append(f"Consignment fallback fetch fail on {acc['email']} - {data.get('error', '')}")
+                        continue # End of the line for this Account. Rotate to the next.
 
         return result
