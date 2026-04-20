@@ -17,7 +17,11 @@ async def accounts_page(request: Request, user: dict = Depends(get_current_user_
     if not user:
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("accounts.html", {"request": request, "title": "Account Management"})
+        
+    setting = await db.app_settings.find_one({"_id": "cache_settings"})
+    skip_mins = setting.get("steadfast_login_skip_minutes", 60) if setting else 60
+        
+    return templates.TemplateResponse("accounts.html", {"request": request, "title": "Account Management", "skip_mins": skip_mins})
 
 # --- System Settings API ---
 class CacheSetting(BaseModel):
