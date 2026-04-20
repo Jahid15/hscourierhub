@@ -96,6 +96,7 @@ async function loadAccounts() {
                         <div class="${fColor} h-1.5 rounded-full" style="width: ${Math.min(fPct, 100)}%"></div>
                     </div>
                 </td>
+                <td class="px-4 py-3 text-center text-xs text-gray-800 border-l border-gray-200 font-semibold">${acc.login_skip_minutes || 60}m</td>
                 <td class="px-4 py-3 text-center text-xs text-gray-500 border-l border-gray-200">${lastUsed}</td>
                 <td class="px-4 py-3 text-center border-l border-gray-200">
                     <button onclick='editAccount(${JSON.stringify(acc)})' class="text-blue-600 hover:text-blue-800 mr-2" title="Edit">✏️</button>
@@ -115,6 +116,7 @@ function openAddModal() {
     document.getElementById('accPassword').value = '';
     document.getElementById('accConsLimit').value = '10';
     document.getElementById('accFraudLimit').value = '5';
+    document.getElementById('accLoginSkip').value = '60';
     
     document.getElementById('modalTitle').textContent = 'Add Account';
     document.getElementById('pwRequiredStar').classList.remove('hidden');
@@ -129,6 +131,7 @@ window.editAccount = function(acc) {
     document.getElementById('accPassword').value = acc.password; // masked usually
     document.getElementById('accConsLimit').value = acc.consignment_limit;
     document.getElementById('accFraudLimit').value = acc.fraud_limit;
+    document.getElementById('accLoginSkip').value = acc.login_skip_minutes || 60;
     
     document.getElementById('modalTitle').textContent = 'Edit Account';
     document.getElementById('pwRequiredStar').classList.add('hidden');
@@ -150,7 +153,8 @@ document.getElementById('accountForm').addEventListener('submit', async (e) => {
     const payload = {
         email: document.getElementById('accEmail').value,
         consignment_limit: parseInt(document.getElementById('accConsLimit').value),
-        fraud_limit: parseInt(document.getElementById('accFraudLimit').value)
+        fraud_limit: parseInt(document.getElementById('accFraudLimit').value),
+        login_skip_minutes: parseInt(document.getElementById('accLoginSkip').value)
     };
     
     const pw = document.getElementById('accPassword').value;
